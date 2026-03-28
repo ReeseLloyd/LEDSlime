@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEDSlime v0.2</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #05060f;
+  color: #445;
+  font-family: monospace;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 16px;
+  user-select: none;
+}
+h1 { font-size: 11px; letter-spacing: 4px; color: #222533; text-transform: uppercase; }
+canvas { display: block; }
+.controls { display: flex; gap: 10px; align-items: center; }
+select, button {
+  background: #0c0d1a;
+  color: #445;
+  border: 1px solid #191b2e;
+  padding: 5px 14px;
+  font-family: monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  outline: none;
+}
+select:hover, button:hover {
+  background: #131525;
+  color: #6677aa;
+  border-color: #252840;
+}
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 80px;
+  height: 3px;
+  background: #191b2e;
+  outline: none;
+  cursor: pointer;
+  border-radius: 2px;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 10px;
+  background: #445;
+  border-radius: 50%;
+  cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb:hover { background: #6677aa; }
+input[type=range]::-moz-range-thumb {
+  width: 10px; height: 10px;
+  background: #445; border: none; border-radius: 50%; cursor: pointer;
+}
+.speed-label { font-size: 11px; min-width: 38px; }
+</style>
+</head>
+<body>
+<h1>LED Slime</h1>
+<canvas id="c"></canvas>
+<div class="controls">
+  <select id="preset">
+    <option value="network">Network</option>
+    <option value="radiant">Radiant</option>
+    <option value="blobs">Blobs</option>
+    <option value="tendrils">Tendrils</option>
+  </select>
+  <input type="range" id="speed" min="10" max="400" step="5" value="100">
+  <span class="speed-label" id="speedLabel">100%</span>
+  <button id="btn">↺ Restart</button>
+</div>
+
+<script>
+// ── PRNG ─────────────────────────────────────────────────────────────────────
+
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = t + Math.imul(t ^ (t >>> 7), 61 | t) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// ── HSL → RGB ─────────────────────────────────────────────────────────────────
+
+function hslToRgb(h, s, l) {
+  // h: 0–360, s: 0–1, l: 0–1  →  [r, g, b] each 0–255
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+  const m = l - c / 2;
+  let r = 0, g = 0, b = 0;
+  if      (h < 60)  { r = c; g = x; b = 0; }
+  else if (h < 120) { r = x; g = c; b = 0; }
+  else if (h < 180) { r = 0; g = c; b = x; }
+  else if (h < 240) { r = 0; g = x; b = c; }
+  else if (h < 300) { r = x; g = 0; b = c; }
+  else              { r = c; g = 0; b = x; }
+  return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
+}
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const DEG = Math.PI / 180;
+const W = 100, H = 100, CELL = 6;
+const PW = W * CELL, PH = H * CELL;
+
+// ── Presets ───────────────────────────────────────────────────────────────────
+//
+// sa        sensor angle (rad)        — spread between left/right sensor and forward
+// ra        rotation angle (rad)      — how sharply agents steer each step
+// sd        sensor distance (cells)   — how far ahead sensors reach
+// step      movement per tick (cells)
+// decay     trail multiplier per tick (< 1 → fades over time)
+// spread    diffusion rate            — how much trail bleeds to neighbours
+// deposit   trail added per agent visit
+// spf       base simulation ticks per frame (scaled by speedMult)
+// placement initial agent distribution
+
+const PRESETS = {
+  network: {
+    n: 3000, sa: 30*DEG, ra: 45*DEG, sd: 7,  step: 1.0,
+    decay: 0.93, spread: 0.14, deposit: 0.10, spf: 3,
+    placement: 'random',
+  },
+  radiant: {
+    n: 2500, sa: 22*DEG, ra: 40*DEG, sd: 9,  step: 1.1,
+    decay: 0.91, spread: 0.10, deposit: 0.10, spf: 3,
+    placement: 'center',
+  },
+  blobs: {
+    n: 3500, sa: 55*DEG, ra: 80*DEG, sd: 5,  step: 0.9,
+    decay: 0.95, spread: 0.18, deposit: 0.08, spf: 2,
+    placement: 'clusters',   // random clusters; agents orbit locally then merge
+  },
+  tendrils: {
+    n: 1500, sa: 45*DEG, ra: 20*DEG, sd: 12, step: 1.3,
+    decay: 0.88, spread: 0.08, deposit: 0.10, spf: 3,
+    placement: 'edges',
+  },
+};
+
+// ── Simulation state ──────────────────────────────────────────────────────────
+
+let agents   = [];
+let trail    = new Float32Array(W * H);
+let trailB   = new Float32Array(W * H);
+let cfg      = PRESETS.network;
+let curColor = [80, 220, 255];  // updated in init() from seed
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+function init(key, seed) {
+  cfg = PRESETS[key];
+  const rng = mulberry32(seed);
+
+  // Derive a vivid random hue from the seed (full saturation, mid lightness)
+  curColor = hslToRgb(rng() * 360, 1.0, 0.55);
+
+  trail.fill(0);
+  trailB.fill(0);
+  agents = [];
+
+  // Pre-generate cluster centres for blobs placement
+  let clusters = null;
+  if (cfg.placement === 'clusters') {
+    clusters = [];
+    const nc = 7 + Math.floor(rng() * 5);   // 7–11 clusters
+    for (let j = 0; j < nc; j++) {
+      clusters.push({
+        x: 8 + rng() * (W - 16),
+        y: 8 + rng() * (H - 16),
+      });
+    }
+  }
+
+  for (let i = 0; i < cfg.n; i++) {
+    let x, y, a;
+    switch (cfg.placement) {
+      case 'center': {
+        // Tight cluster at centre, agents pointing outward
+        const r  = rng() * 12;
+        const th = rng() * Math.PI * 2;
+        x = W * 0.5 + Math.cos(th) * r;
+        y = H * 0.5 + Math.sin(th) * r;
+        a = th;
+        break;
+      }
+      case 'clusters': {
+        // Distribute evenly across random cluster centres
+        const c  = clusters[i % clusters.length];
+        const r  = rng() * 7;
+        const th = rng() * Math.PI * 2;
+        x = c.x + Math.cos(th) * r;
+        y = c.y + Math.sin(th) * r;
+        a = rng() * Math.PI * 2;
+        break;
+      }
+      case 'edges': {
+        // Scattered along all four edges, pointing inward
+        const side = Math.floor(rng() * 4);
+        if      (side === 0) { x = rng()*W; y = 1;   a =  Math.PI*0.5 + (rng()-0.5)*0.4; }
+        else if (side === 1) { x = rng()*W; y = H-2; a = -Math.PI*0.5 + (rng()-0.5)*0.4; }
+        else if (side === 2) { x = 1;       y = rng()*H; a =              (rng()-0.5)*0.4; }
+        else                 { x = W-2;     y = rng()*H; a = Math.PI    + (rng()-0.5)*0.4; }
+        break;
+      }
+      default: {
+        x = rng() * W;
+        y = rng() * H;
+        a = rng() * Math.PI * 2;
+      }
+    }
+    agents.push({ x, y, a });
+  }
+}
+
+// ── Simulation step ───────────────────────────────────────────────────────────
+
+function sample(x, y) {
+  // Torus-wrapped nearest-cell trail lookup
+  const ix = ((x | 0) % W + W) % W;
+  const iy = ((y | 0) % H + H) % H;
+  return trail[iy * W + ix];
+}
+
+function step() {
+  const { sa, ra, sd, step: spd, decay, spread, deposit } = cfg;
+
+  // Phase 1: sense → steer → move → deposit
+  for (const ag of agents) {
+    const cos_a = Math.cos(ag.a), sin_a = Math.sin(ag.a);
+
+    const fwd   = sample(ag.x + cos_a               * sd,  ag.y + sin_a               * sd);
+    const left  = sample(ag.x + Math.cos(ag.a - sa) * sd,  ag.y + Math.sin(ag.a - sa) * sd);
+    const right = sample(ag.x + Math.cos(ag.a + sa) * sd,  ag.y + Math.sin(ag.a + sa) * sd);
+
+    let mx = cos_a, my = sin_a;   // movement direction (default: straight)
+    if (fwd >= left && fwd >= right) {
+      // Strongest signal is ahead — continue forward
+    } else if (left > right) {
+      ag.a -= ra;  mx = Math.cos(ag.a);  my = Math.sin(ag.a);
+    } else if (right > left) {
+      ag.a += ra;  mx = Math.cos(ag.a);  my = Math.sin(ag.a);
+    } else {
+      // Equal non-forward signals — rotate randomly
+      ag.a += (Math.random() < 0.5 ? 1 : -1) * ra;
+      mx = Math.cos(ag.a);  my = Math.sin(ag.a);
+    }
+
+    ag.x = ((ag.x + mx * spd) % W + W) % W;
+    ag.y = ((ag.y + my * spd) % H + H) % H;
+
+    const ci = (ag.y | 0) * W + (ag.x | 0);
+    trail[ci] = Math.min(1, trail[ci] + deposit);
+  }
+
+  // Phase 2: diffuse + decay (3×3 equal-weight box blur blended with original)
+  for (let cy = 0; cy < H; cy++) {
+    const yn = ((cy - 1 + H) % H) * W;
+    const yc = cy * W;
+    const ys = ((cy + 1)     % H) * W;
+    for (let cx = 0; cx < W; cx++) {
+      const xw = (cx - 1 + W) % W, xe = (cx + 1) % W;
+      const avg = (
+        trail[yc + cx] + trail[yn + cx] + trail[ys + cx] +
+        trail[yc + xw] + trail[yc + xe] +
+        trail[yn + xw] + trail[yn + xe] +
+        trail[ys + xw] + trail[ys + xe]
+      ) * (1 / 9);
+      trailB[yc + cx] = ((1 - spread) * trail[yc + cx] + spread * avg) * decay;
+    }
+  }
+
+  // Swap buffers
+  let tmp = trail;  trail = trailB;  trailB = tmp;
+}
+
+// ── Rendering ─────────────────────────────────────────────────────────────────
+
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+canvas.width  = PW;
+canvas.height = PH;
+
+// Soft circular LED dot kernel
+const kern = new Float32Array(CELL * CELL);
+{
+  const h = CELL * 0.5;
+  for (let py = 0; py < CELL; py++)
+    for (let px = 0; px < CELL; px++) {
+      const dx = px - h + 0.5, dy = py - h + 0.5;
+      const d  = Math.sqrt(dx*dx + dy*dy) / (h * 0.88);
+      kern[py * CELL + px] = Math.max(0, 1 - d * d);
+    }
+}
+
+const imgData  = ctx.createImageData(PW, PH);
+const buf      = imgData.data;
+const rowBytes = PW * 4;
+
+function render() {
+  const [pr, pg, pb] = curColor;
+
+  for (let cy = 0; cy < H; cy++) {
+    for (let cx = 0; cx < W; cx++) {
+      const t  = trail[cy * W + cx];
+
+      // Gamma ramp: dim trail is faintly visible; peak trail bleaches to white
+      const br = Math.pow(t, 0.55);   // brightness ramp
+      const wh = Math.pow(t, 2.2);    // whitening at high intensity
+      const cr = Math.min(255, pr * br + 255 * wh) | 0;
+      const cg = Math.min(255, pg * br + 255 * wh) | 0;
+      const cb = Math.min(255, pb * br + 255 * wh) | 0;
+
+      const ox = cx * CELL, oy = cy * CELL;
+      for (let py = 0; py < CELL; py++) {
+        const row = (oy + py) * rowBytes + ox * 4;
+        for (let px = 0; px < CELL; px++) {
+          const k  = kern[py * CELL + px];
+          const pi = row + px * 4;
+          buf[pi  ] = (cr * k)               | 0;
+          buf[pi+1] = (cg * k)               | 0;
+          buf[pi+2] = (cb * k + (1 - k) * 5) | 0;  // ambient blue bleed
+          buf[pi+3] = 255;
+        }
+      }
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
+// ── Loop ──────────────────────────────────────────────────────────────────────
+
+let raf       = null;
+let speedMult = 1.0;
+let stepAccum = 0.0;
+
+function loop() {
+  // Accumulate fractional steps so speeds below 1× still work smoothly
+  stepAccum += cfg.spf * speedMult;
+  const steps = Math.floor(stepAccum);
+  stepAccum  -= steps;
+  for (let i = 0; i < steps; i++) step();
+  render();
+  raf = requestAnimationFrame(loop);
+}
+
+function restart(key, seed) {
+  if (raf) cancelAnimationFrame(raf);
+  stepAccum = 0;
+  init(key, seed);
+  loop();
+}
+
+// ── Controls ──────────────────────────────────────────────────────────────────
+
+let activeSeed = 42;
+
+document.getElementById('preset').addEventListener('change', e => {
+  restart(e.target.value, activeSeed);
+});
+
+const speedEl      = document.getElementById('speed');
+const speedLabelEl = document.getElementById('speedLabel');
+speedEl.addEventListener('input', () => {
+  speedMult = +speedEl.value / 100;
+  speedLabelEl.textContent = speedEl.value + '%';
+});
+
+document.getElementById('btn').addEventListener('click', () => {
+  activeSeed = Math.floor(Math.random() * 99999);
+  restart(document.getElementById('preset').value, activeSeed);
+});
+
+restart('network', activeSeed);
+</script>
+</body>
+</html>
