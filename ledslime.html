@@ -2,7 +2,7 @@
 <html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LEDSlime v0.6</title>
+<title>LEDSlime v0.7</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -33,6 +33,10 @@ select, button {
 }
 select:hover, button:hover {
   background: #131525;
+  color: #6677aa;
+  border-color: #252840;
+}
+button.active {
   color: #6677aa;
   border-color: #252840;
 }
@@ -75,6 +79,7 @@ input[type=range]::-moz-range-thumb {
   <input type="range" id="speed" min="5" max="200" step="5" value="50">
   <span class="speed-label" id="speedLabel">50%</span>
   <button id="btn">↺ Restart</button>
+  <button id="nucleiBtn" class="active">nuclei</button>
 </div>
 
 <script>
@@ -133,6 +138,7 @@ const PRESETS = {
     decay: 0.93, spread: 0.14, deposit: 0.08, spf: 3,
     wander: 0.012,
     placement: 'random',
+    nucleus: { minInterval: 300, maxInterval: 700, agentsPerNucleus: 160, radius: 5 },
   },
   radiant: {
     // Multiple radiant sources instead of one centre — each blazes outward then
@@ -141,6 +147,7 @@ const PRESETS = {
     decay: 0.91, spread: 0.10, deposit: 0.09, spf: 3,
     wander: 0.008,
     placement: 'multi-center',
+    nucleus: { minInterval: 300, maxInterval: 600, agentsPerNucleus: 120, radius: 4 },
   },
   blobs: {
     n: 3500, sa: 55*DEG, ra: 80*DEG, sd: 5,  step: 0.9,
@@ -162,6 +169,7 @@ const PRESETS = {
     decay: 0.84, spread: 0.08, deposit: 0.07, spf: 3,
     wander: 0.06,
     placement: 'edges',
+    nucleus: { minInterval: 400, maxInterval: 800, agentsPerNucleus: 80, radius: 4 },
   },
 };
 
@@ -180,8 +188,9 @@ let burstCooldown  = 0;
 let trailDeltaEMA  = 100.0;  // initialised high so burst doesn't fire at start
 let prevTrailSum   = 0;
 
-// Nucleus injection state (used by presets with a nucleus config)
-let nucleusTick = 0;  // countdown ticks until next injection
+// Nucleus injection state
+let nucleusEnabled = true;   // toggled by UI button
+let nucleusTick    = 0;      // countdown ticks until next injection
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
@@ -392,13 +401,13 @@ function step() {
     } else if (trailDeltaEMA < burst.threshold) {
       burstActive = true; burstRemaining = burst.duration;
     }
+  }
 
-    // Nucleus injection: periodic regardless of stagnation state
-    if (cfg.nucleus && --nucleusTick <= 0) {
-      injectNucleus();
-      const nc = cfg.nucleus;
-      nucleusTick = nc.minInterval + Math.floor(Math.random() * (nc.maxInterval - nc.minInterval));
-    }
+  // Nucleus injection — all presets, when the toggle is on
+  if (nucleusEnabled && cfg.nucleus && --nucleusTick <= 0) {
+    injectNucleus();
+    const nc = cfg.nucleus;
+    nucleusTick = nc.minInterval + Math.floor(Math.random() * (nc.maxInterval - nc.minInterval));
   }
 
   // Swap buffers
@@ -504,6 +513,12 @@ speedEl.addEventListener('input', () => {
 document.getElementById('btn').addEventListener('click', () => {
   activeSeed = Math.floor(Math.random() * 99999);
   restart(document.getElementById('preset').value, activeSeed);
+});
+
+const nucleiBtn = document.getElementById('nucleiBtn');
+nucleiBtn.addEventListener('click', () => {
+  nucleusEnabled = !nucleusEnabled;
+  nucleiBtn.classList.toggle('active', nucleusEnabled);
 });
 
 restart('network', activeSeed);

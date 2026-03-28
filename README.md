@@ -1,4 +1,4 @@
-# LEDSlime v0.6
+# LEDSlime v0.7
 
 A browser-based Physarum polycephalum (slime mould) simulator with an LED dot-matrix aesthetic. Thousands of microscopic agents sense, steer, and deposit chemical trail — the emergent result is a self-organising transport network that looks alive.
 
@@ -19,6 +19,7 @@ Open `ledslime.html` in a modern browser (`File > Open` or drag onto browser win
 | **Preset dropdown** | Switch between the four simulation modes (resets with current seed) |
 | **Speed slider** | Scale simulation speed from 5% to 200%. Uses a step accumulator so sub-1× speeds work smoothly (some frames run zero steps). Default: 50%. |
 | **↺ Restart** | Pick a new random seed and restart. Changes the initial agent placement *and* the display color (derived from the seed). |
+| **nuclei** | Toggle periodic nucleus injection on/off (default: on). When on, every 300–700 ticks a cluster of agents is teleported to an empty region pointing outward, creating new growth fronts. See preset table for per-preset tuning. |
 
 ---
 
@@ -106,3 +107,4 @@ The standard LED dot-matrix pipeline used across the LED project family:
 | **v0.4** | Speed slider rebased: range changed from 10–400% to 5–200%, default changed from 100% to 50%. The new 50% matches the old 10% — overall simulation runs slower by default, better for watching the network self-organise. |
 | **v0.5** | Blobs: stagnation-triggered wander burst. An exponential moving average tracks trail-map delta per tick; when it drops below a threshold (system has settled), wander spikes from 1.5% to 25% for ~150 ticks, scattering agents to seed new formations and mergers. After the burst a cooldown prevents immediate re-triggering. |
 | **v0.6** | Blobs: periodic nucleus injection. Every 300–700 ticks (randomized), 160 agents are teleported to an empty-ish region and pointed outward, replaying the blob-formation phase indefinitely. A candidate-sampling approach picks the lowest-density region from 8 random candidates, so new nuclei consistently seed into unexplored space. Occasionally two nuclei fire simultaneously. Runs alongside the existing stagnation burst. |
+| **v0.7** | Nucleus injection extended to all presets and made toggleable via a "nuclei" UI button (default: on). Per-preset tuning: Network 160 agents/300–700 ticks, Radiant 120/300–600, Blobs 160/300–700 (unchanged), Tendrils 80/400–800. Agent counts scaled to ~4% of each preset's total. |
