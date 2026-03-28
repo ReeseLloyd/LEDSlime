@@ -2,7 +2,7 @@
 <html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LEDSlime v0.3</title>
+<title>LEDSlime v0.4</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -72,8 +72,8 @@ input[type=range]::-moz-range-thumb {
     <option value="blobs">Blobs</option>
     <option value="tendrils">Tendrils</option>
   </select>
-  <input type="range" id="speed" min="10" max="400" step="5" value="100">
-  <span class="speed-label" id="speedLabel">100%</span>
+  <input type="range" id="speed" min="5" max="200" step="5" value="50">
+  <span class="speed-label" id="speedLabel">50%</span>
   <button id="btn">↺ Restart</button>
 </div>
 
@@ -378,7 +378,7 @@ function render() {
 // ── Loop ──────────────────────────────────────────────────────────────────────
 
 let raf       = null;
-let speedMult = 1.0;
+let speedMult = 0.1;
 let stepAccum = 0.0;
 
 function loop() {
@@ -409,7 +409,7 @@ document.getElementById('preset').addEventListener('change', e => {
 const speedEl      = document.getElementById('speed');
 const speedLabelEl = document.getElementById('speedLabel');
 speedEl.addEventListener('input', () => {
-  speedMult = +speedEl.value / 100;
+  speedMult = +speedEl.value / 500;
   speedLabelEl.textContent = speedEl.value + '%';
 });
 
