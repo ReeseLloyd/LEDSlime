@@ -1,4 +1,4 @@
-# LEDSlime v0.5
+# LEDSlime v0.6
 
 A browser-based Physarum polycephalum (slime mould) simulator with an LED dot-matrix aesthetic. Thousands of microscopic agents sense, steer, and deposit chemical trail — the emergent result is a self-organising transport network that looks alive.
 
@@ -105,3 +105,4 @@ The standard LED dot-matrix pipeline used across the LED project family:
 | **v0.3** | Wander parameter added to all presets — prevents equilibrium lock-in, keeps Tendrils perpetually searching. Radiant changed to multi-center placement (2–4 sources). Network: more agents, longer sensor reach, lower deposit. Tendrils: faster decay + lower deposit so paths must be actively re-forged. Per-channel gamma curves for richer color depth. |
 | **v0.4** | Speed slider rebased: range changed from 10–400% to 5–200%, default changed from 100% to 50%. The new 50% matches the old 10% — overall simulation runs slower by default, better for watching the network self-organise. |
 | **v0.5** | Blobs: stagnation-triggered wander burst. An exponential moving average tracks trail-map delta per tick; when it drops below a threshold (system has settled), wander spikes from 1.5% to 25% for ~150 ticks, scattering agents to seed new formations and mergers. After the burst a cooldown prevents immediate re-triggering. |
+| **v0.6** | Blobs: periodic nucleus injection. Every 300–700 ticks (randomized), 160 agents are teleported to an empty-ish region and pointed outward, replaying the blob-formation phase indefinitely. A candidate-sampling approach picks the lowest-density region from 8 random candidates, so new nuclei consistently seed into unexplored space. Occasionally two nuclei fire simultaneously. Runs alongside the existing stagnation burst. |
