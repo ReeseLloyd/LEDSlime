@@ -2,7 +2,7 @@
 <html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LEDSlime v0.4</title>
+<title>LEDSlime v0.5</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -147,6 +147,9 @@ const PRESETS = {
     decay: 0.95, spread: 0.18, deposit: 0.08, spf: 2,
     wander: 0.015,
     placement: 'clusters',
+    // Stagnation burst: when the trail map stops changing, spike wander to
+    // scatter agents and trigger new blob formations and mergers.
+    burst: { wander: 0.25, duration: 150, threshold: 3.0, emaAlpha: 0.04, cooldown: 400 },
   },
   tendrils: {
     // Faster decay means established paths fade and must be actively re-forged.
@@ -167,6 +170,13 @@ let trailB   = new Float32Array(W * H);
 let cfg      = PRESETS.network;
 let curColor = [80, 220, 255];  // updated in init() from seed
 
+// Burst state (used by presets with a burst config)
+let burstActive    = false;
+let burstRemaining = 0;
+let burstCooldown  = 0;
+let trailDeltaEMA  = 100.0;  // initialised high so burst doesn't fire at start
+let prevTrailSum   = 0;
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 function init(key, seed) {
@@ -179,6 +189,8 @@ function init(key, seed) {
   trail.fill(0);
   trailB.fill(0);
   agents = [];
+  burstActive = false; burstRemaining = 0; burstCooldown = 0;
+  trailDeltaEMA = 100.0; prevTrailSum = 0;
 
   // Pre-generate centres for cluster-based placements
   let centers = null;
@@ -257,7 +269,8 @@ function sample(x, y) {
 }
 
 function step() {
-  const { sa, ra, sd, step: spd, decay, spread, deposit, wander } = cfg;
+  const { sa, ra, sd, step: spd, decay, spread, deposit, burst } = cfg;
+  const wander = (burstActive && burst) ? burst.wander : cfg.wander;
 
   // Phase 1: sense → steer → move → deposit
   for (const ag of agents) {
@@ -310,6 +323,23 @@ function step() {
         trail[ys + xw] + trail[ys + xe]
       ) * (1 / 9);
       trailB[yc + cx] = ((1 - spread) * trail[yc + cx] + spread * avg) * decay;
+    }
+  }
+
+  // Stagnation detection — only for presets with a burst config (blobs)
+  if (burst) {
+    let trailSum = 0;
+    for (let i = 0; i < W * H; i++) trailSum += trailB[i];
+    const delta = Math.abs(trailSum - prevTrailSum);
+    prevTrailSum = trailSum;
+    trailDeltaEMA = (1 - burst.emaAlpha) * trailDeltaEMA + burst.emaAlpha * delta;
+
+    if (burstActive) {
+      if (--burstRemaining <= 0) { burstActive = false; burstCooldown = burst.cooldown; }
+    } else if (burstCooldown > 0) {
+      burstCooldown--;
+    } else if (trailDeltaEMA < burst.threshold) {
+      burstActive = true; burstRemaining = burst.duration;
     }
   }
 
