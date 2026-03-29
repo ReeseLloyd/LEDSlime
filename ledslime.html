@@ -2,7 +2,7 @@
 <html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LEDSlime v0.9</title>
+<title>LEDSlime v1.0</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -167,8 +167,8 @@ const PRESETS = {
     // Low spread keeps rings sharp rather than merging into filled discs.
     // Faster decay (~0.88) means rings must be actively maintained, so they
     // pulse and breathe rather than freezing.
-    n: 3000, sa: 65*DEG, ra: 55*DEG, sd: 4,  step: 0.8,
-    decay: 0.88, spread: 0.08, deposit: 0.09, spf: 2,
+    n: 3000, sa: 65*DEG, ra: 55*DEG, sd: 3,  step: 0.8,
+    decay: 0.85, spread: 0.04, deposit: 0.07, spf: 2,
     wander: 0.008,
     placement: 'rings',
     nucleus: { minInterval: 350, maxInterval: 700, agentsPerNucleus: 120, radius: 6 },

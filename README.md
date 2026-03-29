@@ -1,4 +1,4 @@
-# LEDSlime v0.9
+# LEDSlime v1.0
 
 A browser-based Physarum polycephalum (slime mould) simulator with an LED dot-matrix aesthetic. Thousands of microscopic agents sense, steer, and deposit chemical trail — the emergent result is a self-organising transport network that looks alive.
 
@@ -92,11 +92,11 @@ The standard LED dot-matrix pipeline used across the LED project family:
 | Agents (n) | 4,000 | 3,000 | 3,000 | 3,500 | 1,800 |
 | Sensor angle | 30° | 22° | 65° | 35° | 45° |
 | Rotation angle | 45° | 40° | 55° | 30° | 20° |
-| Sensor distance | 9 | 9 | 4 | 7 | 12 |
+| Sensor distance | 9 | 9 | 3 | 7 | 12 |
 | Step size | 1.0 | 1.1 | 0.8 | 1.4 | 1.3 |
-| Decay | 0.93 | 0.91 | 0.88 | 0.75 | 0.84 |
-| Spread | 0.14 | 0.10 | 0.08 | 0.22 | 0.08 |
-| Deposit | 0.08 | 0.09 | 0.09 | 0.15 | 0.07 |
+| Decay | 0.93 | 0.91 | 0.85 | 0.75 | 0.84 |
+| Spread | 0.14 | 0.10 | 0.04 | 0.22 | 0.08 |
+| Deposit | 0.08 | 0.09 | 0.07 | 0.15 | 0.07 |
 | Wander | 1.2% | 0.8% | 0.8% | 8.0% | 6.0% |
 | Placement | random | multi-center | rings | random | edges |
 
@@ -115,3 +115,4 @@ The standard LED dot-matrix pipeline used across the LED project family:
 | **v0.7** | Nucleus injection extended to all presets and made toggleable via a "nuclei" UI button (default: on). Per-preset tuning: Network 160 agents/300–700 ticks, Radiant 120/300–600, Blobs 160/300–700 (unchanged), Tendrils 80/400–800. Agent counts scaled to ~4% of each preset's total. |
 | **v0.8** | Blobs: decay reduced 0.95 → 0.84 and spread reduced 0.18 → 0.14. Blobs now fade without active reinforcement, forcing continuous re-establishment. Sharper gradients give agents something to steer by within a blob rather than drifting in a flat pool. |
 | **v0.9** | Blobs suspended (commented out, not removed). Replaced with two new presets: **Rings** (extreme 65° sensor angle drives stable circular orbits; tangential starting placement; low spread keeps rings sharp) and **Swarms** (decay 0.75 — trail evaporates in ~2 ticks; agents chase brief glowing wakes producing loose, churning bioluminescent clusters). |
+| **v1.0** | Rings: reduce spread 0.08 → 0.04, decay 0.88 → 0.85, deposit 0.09 → 0.07, sd 4 → 3. Fixes disc fill-in: less diffusion keeps trail on the arc, faster decay clears leaked interior trail, lower deposit maintains a gradient at the ring edge, shorter sensor distance stops agents sensing the diffuse interior mass. |
