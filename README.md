@@ -1,4 +1,4 @@
-# LEDSlime v0.8
+# LEDSlime v0.9
 
 A browser-based Physarum polycephalum (slime mould) simulator with an LED dot-matrix aesthetic. Thousands of microscopic agents sense, steer, and deposit chemical trail — the emergent result is a self-organising transport network that looks alive.
 
@@ -16,7 +16,7 @@ Open `ledslime.html` in a modern browser (`File > Open` or drag onto browser win
 
 | Control | Description |
 |---|---|
-| **Preset dropdown** | Switch between the four simulation modes (resets with current seed) |
+| **Preset dropdown** | Switch between the five simulation modes (resets with current seed) |
 | **Speed slider** | Scale simulation speed from 5% to 200%. Uses a step accumulator so sub-1× speeds work smoothly (some frames run zero steps). Default: 50%. |
 | **↺ Restart** | Pick a new random seed and restart. Changes the initial agent placement *and* the display color (derived from the seed). |
 | **nuclei** | Toggle periodic nucleus injection on/off (default: on). When on, every 300–700 ticks a cluster of agents is teleported to an empty region pointing outward, creating new growth fronts. See preset table for per-preset tuning. |
@@ -35,10 +35,15 @@ Spoke-like structures radiating from 2–4 random source points (seeded per rest
 
 **Best at:** default speed. The inter-source connection phase is the visual payoff — typically happens 30–60 seconds in.
 
-### Blobs
-Wide sensor angle (55°) and aggressive rotation (80°) cause agents to orbit and cluster rather than form straight paths. 3,500 agents distributed across 7–11 random clusters, each of which develops a local swirling blob. Over time blobs expand, touch, and merge through connecting bridges.
+### Rings
+An extreme sensor angle (65°) places the left/right sensors nearly perpendicular to the heading. An agent riding along a curved trail always sees the arc strongly on one side, steering it into a stable orbit. 3,000 agents are placed on circular arcs at varied radii around 3–5 centres, all pointing tangentially, so they fall into orbits immediately rather than spending time exploring. Low spread (0.08) keeps rings sharp and distinct rather than bleeding into filled discs. Faster decay (0.88) means rings must be actively maintained — they pulse and breathe rather than freezing in place.
 
-**Best at:** default or slightly faster. Blobs form quickly; the merger phase is interesting at any speed.
+**Best at:** default speed. Multiple concentric rings per centre are visible early; over time rings interact, merge, and spawn new ones via nucleus injection.
+
+### Swarms
+Very fast decay (0.75, half-life ~2.4 ticks) means trail evaporates almost immediately. Agents chase each other's brief glowing wakes rather than following long-lived paths. The result looks like bioluminescent plankton or fireflies — loose, churning clusters that constantly form, drift, and dissolve. High wander (8%) and fast step size keep groups in constant motion. High spread (0.22) creates a soft diffuse sensing field so clusters stay loosely cohesive without locking into rigid structure.
+
+**Best at:** 50–100% speed. Very slow speeds reveal individual agent motion; higher speeds show the macro swarm dynamics more clearly.
 
 ### Tendrils
 Long, sweeping arms that search across the canvas. Agents start along all four edges pointing inward, with a very low rotation angle (20°) that keeps motion nearly straight. A 12-cell sensor distance lets agents detect faint trails from far away.
@@ -82,18 +87,18 @@ The standard LED dot-matrix pipeline used across the LED project family:
 
 ## Preset Parameters
 
-| Parameter | Network | Radiant | Blobs | Tendrils |
-|---|---|---|---|---|
-| Agents (n) | 4,000 | 3,000 | 3,500 | 1,800 |
-| Sensor angle | 30° | 22° | 55° | 45° |
-| Rotation angle | 45° | 40° | 80° | 20° |
-| Sensor distance | 9 | 9 | 5 | 12 |
-| Step size | 1.0 | 1.1 | 0.9 | 1.3 |
-| Decay | 0.93 | 0.91 | 0.95 | 0.84 |
-| Spread | 0.14 | 0.10 | 0.18 | 0.08 |
-| Deposit | 0.08 | 0.09 | 0.08 | 0.07 |
-| Wander | 1.2% | 0.8% | 1.5% | 6.0% |
-| Placement | random | multi-center | clusters | edges |
+| Parameter | Network | Radiant | Rings | Swarms | Tendrils |
+|---|---|---|---|---|---|
+| Agents (n) | 4,000 | 3,000 | 3,000 | 3,500 | 1,800 |
+| Sensor angle | 30° | 22° | 65° | 35° | 45° |
+| Rotation angle | 45° | 40° | 55° | 30° | 20° |
+| Sensor distance | 9 | 9 | 4 | 7 | 12 |
+| Step size | 1.0 | 1.1 | 0.8 | 1.4 | 1.3 |
+| Decay | 0.93 | 0.91 | 0.88 | 0.75 | 0.84 |
+| Spread | 0.14 | 0.10 | 0.08 | 0.22 | 0.08 |
+| Deposit | 0.08 | 0.09 | 0.09 | 0.15 | 0.07 |
+| Wander | 1.2% | 0.8% | 0.8% | 8.0% | 6.0% |
+| Placement | random | multi-center | rings | random | edges |
 
 ---
 
@@ -109,3 +114,4 @@ The standard LED dot-matrix pipeline used across the LED project family:
 | **v0.6** | Blobs: periodic nucleus injection. Every 300–700 ticks (randomized), 160 agents are teleported to an empty-ish region and pointed outward, replaying the blob-formation phase indefinitely. A candidate-sampling approach picks the lowest-density region from 8 random candidates, so new nuclei consistently seed into unexplored space. Occasionally two nuclei fire simultaneously. Runs alongside the existing stagnation burst. |
 | **v0.7** | Nucleus injection extended to all presets and made toggleable via a "nuclei" UI button (default: on). Per-preset tuning: Network 160 agents/300–700 ticks, Radiant 120/300–600, Blobs 160/300–700 (unchanged), Tendrils 80/400–800. Agent counts scaled to ~4% of each preset's total. |
 | **v0.8** | Blobs: decay reduced 0.95 → 0.84 and spread reduced 0.18 → 0.14. Blobs now fade without active reinforcement, forcing continuous re-establishment. Sharper gradients give agents something to steer by within a blob rather than drifting in a flat pool. |
+| **v0.9** | Blobs suspended (commented out, not removed). Replaced with two new presets: **Rings** (extreme 65° sensor angle drives stable circular orbits; tangential starting placement; low spread keeps rings sharp) and **Swarms** (decay 0.75 — trail evaporates in ~2 ticks; agents chase brief glowing wakes producing loose, churning bioluminescent clusters). |

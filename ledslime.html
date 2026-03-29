@@ -2,7 +2,7 @@
 <html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LEDSlime v0.8</title>
+<title>LEDSlime v0.9</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -73,8 +73,10 @@ input[type=range]::-moz-range-thumb {
   <select id="preset">
     <option value="network">Network</option>
     <option value="radiant">Radiant</option>
-    <option value="blobs">Blobs</option>
+    <option value="rings">Rings</option>
+    <option value="swarms">Swarms</option>
     <option value="tendrils">Tendrils</option>
+    <!-- <option value="blobs">Blobs</option> — suspended, revisit later -->
   </select>
   <input type="range" id="speed" min="5" max="200" step="5" value="50">
   <span class="speed-label" id="speedLabel">50%</span>
@@ -149,17 +151,39 @@ const PRESETS = {
     placement: 'multi-center',
     nucleus: { minInterval: 300, maxInterval: 600, agentsPerNucleus: 120, radius: 4 },
   },
+  /* blobs — suspended: converges too quickly into a static pool, revisit later
   blobs: {
     n: 3500, sa: 55*DEG, ra: 80*DEG, sd: 5,  step: 0.9,
     decay: 0.84, spread: 0.14, deposit: 0.08, spf: 2,
     wander: 0.015,
     placement: 'clusters',
-    // Stagnation burst: when the trail map stops changing, spike wander to
-    // scatter agents and trigger new blob formations and mergers.
     burst:   { wander: 0.25, duration: 150, threshold: 3.0, emaAlpha: 0.04, cooldown: 400 },
-    // Nucleus injection: every 300–700 ticks, teleport a cluster of agents to an
-    // empty-ish region pointing outward — replays the blob-formation phase repeatedly.
     nucleus: { minInterval: 300, maxInterval: 700, agentsPerNucleus: 160, radius: 5 },
+  }, */
+  rings: {
+    // Extreme sensor angle (65°) places left/right sensors near-perpendicular to
+    // the heading, so agents riding along a trail arc always see the curve and
+    // steer into it — driving stable clockwise/counter-clockwise orbits.
+    // Low spread keeps rings sharp rather than merging into filled discs.
+    // Faster decay (~0.88) means rings must be actively maintained, so they
+    // pulse and breathe rather than freezing.
+    n: 3000, sa: 65*DEG, ra: 55*DEG, sd: 4,  step: 0.8,
+    decay: 0.88, spread: 0.08, deposit: 0.09, spf: 2,
+    wander: 0.008,
+    placement: 'rings',
+    nucleus: { minInterval: 350, maxInterval: 700, agentsPerNucleus: 120, radius: 6 },
+  },
+  swarms: {
+    // Very fast decay (0.75, half-life ~2.4 ticks) means trail evaporates almost
+    // immediately — agents chase each other's brief glowing wakes rather than
+    // following long-lived paths.  High wander (8%) and fast step keep groups
+    // churning.  High spread creates a soft diffuse sensing field so loose
+    // clusters stay loosely cohesive without locking into rigid structures.
+    n: 3500, sa: 35*DEG, ra: 30*DEG, sd: 7,  step: 1.4,
+    decay: 0.75, spread: 0.22, deposit: 0.15, spf: 4,
+    wander: 0.08,
+    placement: 'random',
+    nucleus: { minInterval: 400, maxInterval: 800, agentsPerNucleus: 140, radius: 6 },
   },
   tendrils: {
     // Faster decay means established paths fade and must be actively re-forged.
@@ -213,10 +237,12 @@ function init(key, seed) {
 
   // Pre-generate centres for cluster-based placements
   let centers = null;
-  if (cfg.placement === 'clusters' || cfg.placement === 'multi-center') {
+  if (cfg.placement === 'clusters' || cfg.placement === 'multi-center' || cfg.placement === 'rings') {
     centers = [];
     const nc = cfg.placement === 'clusters'
       ? 7 + Math.floor(rng() * 5)    // 7–11 blob clusters
+      : cfg.placement === 'rings'
+      ? 3 + Math.floor(rng() * 3)    // 3–5 ring centres
       : 2 + Math.floor(rng() * 3);   // 2–4 radiant sources
     for (let j = 0; j < nc; j++) {
       centers.push({
@@ -257,6 +283,18 @@ function init(key, seed) {
         x = c.x + Math.cos(th) * r;
         y = c.y + Math.sin(th) * r;
         a = rng() * Math.PI * 2;
+        break;
+      }
+      case 'rings': {
+        // Place agents on circular arcs at varied radii around each centre,
+        // pointing tangentially.  The extreme sa drives them straight into
+        // stable orbits along these starting tracks.
+        const c  = centers[i % centers.length];
+        const r  = 4 + rng() * 14;           // varied radii → concentric rings
+        const th = rng() * Math.PI * 2;
+        x = c.x + Math.cos(th) * r;
+        y = c.y + Math.sin(th) * r;
+        a = th + Math.PI * 0.5;              // tangential = perpendicular to radial
         break;
       }
       case 'edges': {
