@@ -2,7 +2,7 @@
 <html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LEDSlime v1.0</title>
+<title>LEDSlime v1.1</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -167,11 +167,11 @@ const PRESETS = {
     // Low spread keeps rings sharp rather than merging into filled discs.
     // Faster decay (~0.88) means rings must be actively maintained, so they
     // pulse and breathe rather than freezing.
-    n: 3000, sa: 65*DEG, ra: 55*DEG, sd: 3,  step: 0.8,
-    decay: 0.85, spread: 0.04, deposit: 0.07, spf: 2,
-    wander: 0.008,
+    n: 1800, sa: 80*DEG, ra: 40*DEG, sd: 5,  step: 1.0,
+    decay: 0.90, spread: 0.04, deposit: 0.08, spf: 2,
+    wander: 0.004,
     placement: 'rings',
-    nucleus: { minInterval: 350, maxInterval: 700, agentsPerNucleus: 120, radius: 6 },
+    nucleus: { minInterval: 350, maxInterval: 700, agentsPerNucleus: 90, radius: 5 },
   },
   swarms: {
     // Very fast decay (0.75, half-life ~2.4 ticks) means trail evaporates almost
@@ -242,7 +242,7 @@ function init(key, seed) {
     const nc = cfg.placement === 'clusters'
       ? 7 + Math.floor(rng() * 5)    // 7–11 blob clusters
       : cfg.placement === 'rings'
-      ? 3 + Math.floor(rng() * 3)    // 3–5 ring centres
+      ? 4 + Math.floor(rng() * 3)    // 4–6 ring centres
       : 2 + Math.floor(rng() * 3);   // 2–4 radiant sources
     for (let j = 0; j < nc; j++) {
       centers.push({
@@ -290,7 +290,7 @@ function init(key, seed) {
         // pointing tangentially.  The extreme sa drives them straight into
         // stable orbits along these starting tracks.
         const c  = centers[i % centers.length];
-        const r  = 4 + rng() * 14;           // varied radii → concentric rings
+        const r  = 3 + rng() * 4;            // radii 3–7 cells — matches natural orbit scale
         const th = rng() * Math.PI * 2;
         x = c.x + Math.cos(th) * r;
         y = c.y + Math.sin(th) * r;
