@@ -1,4 +1,4 @@
-# LEDSlime v1.1
+# LEDSlime v1.2
 
 A browser-based Physarum polycephalum (slime mould) simulator with an LED dot-matrix aesthetic. Thousands of microscopic agents sense, steer, and deposit chemical trail — the emergent result is a self-organising transport network that looks alive.
 
@@ -35,10 +35,12 @@ Spoke-like structures radiating from 2–4 random source points (seeded per rest
 
 **Best at:** default speed. The inter-source connection phase is the visual payoff — typically happens 30–60 seconds in.
 
-### Rings
-An extreme sensor angle (65°) places the left/right sensors nearly perpendicular to the heading. An agent riding along a curved trail always sees the arc strongly on one side, steering it into a stable orbit. 3,000 agents are placed on circular arcs at varied radii around 3–5 centres, all pointing tangentially, so they fall into orbits immediately rather than spending time exploring. Low spread (0.08) keeps rings sharp and distinct rather than bleeding into filled discs. Faster decay (0.88) means rings must be actively maintained — they pulse and breathe rather than freezing in place.
+### Vortex
+A sensor angle of 53° sits in the "swirl zone" between Network's straight paths (30°) and ring-forming territory (>70°) — agents arc rather than go straight, producing rotating masses and visible migration streams between them. The gentle rotation angle (30°) creates large-radius curves rather than tight spirals. A fast step size (1.3) makes individual motion visible frame-to-frame.
 
-**Best at:** default speed. Multiple concentric rings per centre are visible early; over time rings interact, merge, and spawn new ones via nucleus injection.
+Clusters placement seeds 7–11 distinct swirling masses at the start. 3% wander continuously redirects agents, seeding new migrations and preventing any mass from locking into a static orbit. Groups assemble, drift toward each other, merge, and split in a continuous cycle.
+
+**Best at:** default speed. Watch the initial clusters swirl and reach toward each other. At higher speeds the canvas-level migrations become more apparent.
 
 ### Swarms
 Very fast decay (0.75, half-life ~2.4 ticks) means trail evaporates almost immediately. Agents chase each other's brief glowing wakes rather than following long-lived paths. The result looks like bioluminescent plankton or fireflies — loose, churning clusters that constantly form, drift, and dissolve. High wander (8%) and fast step size keep groups in constant motion. High spread (0.22) creates a soft diffuse sensing field so clusters stay loosely cohesive without locking into rigid structure.
@@ -89,16 +91,16 @@ The standard LED dot-matrix pipeline used across the LED project family:
 
 | Parameter | Network | Radiant | Rings | Swarms | Tendrils |
 |---|---|---|---|---|---|
-| Agents (n) | 4,000 | 3,000 | 1,800 | 3,500 | 1,800 |
-| Sensor angle | 30° | 22° | 80° | 35° | 45° |
-| Rotation angle | 45° | 40° | 40° | 30° | 20° |
-| Sensor distance | 9 | 9 | 5 | 7 | 12 |
-| Step size | 1.0 | 1.1 | 1.0 | 1.4 | 1.3 |
-| Decay | 0.93 | 0.91 | 0.90 | 0.75 | 0.84 |
-| Spread | 0.14 | 0.10 | 0.04 | 0.22 | 0.08 |
-| Deposit | 0.08 | 0.09 | 0.08 | 0.15 | 0.07 |
-| Wander | 1.2% | 0.8% | 0.4% | 8.0% | 6.0% |
-| Placement | random | multi-center | rings | random | edges |
+| Agents (n) | 4,000 | 3,000 | 2,800 | 3,500 | 1,800 |
+| Sensor angle | 30° | 22° | 53° | 35° | 45° |
+| Rotation angle | 45° | 40° | 30° | 30° | 20° |
+| Sensor distance | 9 | 9 | 8 | 7 | 12 |
+| Step size | 1.0 | 1.1 | 1.3 | 1.4 | 1.3 |
+| Decay | 0.93 | 0.91 | 0.91 | 0.75 | 0.84 |
+| Spread | 0.14 | 0.10 | 0.11 | 0.22 | 0.08 |
+| Deposit | 0.08 | 0.09 | 0.09 | 0.15 | 0.07 |
+| Wander | 1.2% | 0.8% | 3.0% | 8.0% | 6.0% |
+| Placement | random | multi-center | clusters | random | edges |
 
 ---
 
@@ -117,3 +119,4 @@ The standard LED dot-matrix pipeline used across the LED project family:
 | **v0.9** | Blobs suspended (commented out, not removed). Replaced with two new presets: **Rings** (extreme 65° sensor angle drives stable circular orbits; tangential starting placement; low spread keeps rings sharp) and **Swarms** (decay 0.75 — trail evaporates in ~2 ticks; agents chase brief glowing wakes producing loose, churning bioluminescent clusters). |
 | **v1.0** | Rings: reduce spread 0.08 → 0.04, decay 0.88 → 0.85, deposit 0.09 → 0.07, sd 4 → 3. Fixes disc fill-in: less diffusion keeps trail on the arc, faster decay clears leaked interior trail, lower deposit maintains a gradient at the ring edge, shorter sensor distance stops agents sensing the diffuse interior mass. |
 | **v1.1** | Rings: full reparameterisation to fix geometric mismatch. Natural orbit radius ≈ sd/sa(rad); previous sd=3, sa=65° targeted 2.7-cell rings but starting radii were 4–18 cells — agents couldn't sense ring curvature and formed networks instead. New: sa 65°→80°, sd 3→5 (natural orbit radius ~3.6 cells), starting radii narrowed to 3–7 cells, n 3000→1800 (sparse canvas preserves ring gradients), decay 0.85→0.90 (rings have time to self-reinforce), ra 55°→40°, step 0.8→1.0, centres 3–5→4–6. |
+| **v1.2** | Rings suspended (commented out). Replaced with **Vortex**: sa=53° ("swirl zone" between Network's straight paths and ring-forming territory), ra=30° (large-radius curves not tight spirals), step=1.3 (visible individual motion), clusters placement (7–11 starting masses), 3% wander (continuous migration seeding), decay=0.91. Designed to emphasise swirling masses and visible agent migration streams. |

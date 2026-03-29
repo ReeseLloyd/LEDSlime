@@ -2,7 +2,7 @@
 <html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LEDSlime v1.1</title>
+<title>LEDSlime v1.2</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -73,10 +73,11 @@ input[type=range]::-moz-range-thumb {
   <select id="preset">
     <option value="network">Network</option>
     <option value="radiant">Radiant</option>
-    <option value="rings">Rings</option>
+    <option value="vortex">Vortex</option>
     <option value="swarms">Swarms</option>
     <option value="tendrils">Tendrils</option>
     <!-- <option value="blobs">Blobs</option> — suspended, revisit later -->
+    <!-- <option value="rings">Rings</option> — suspended, revisit later -->
   </select>
   <input type="range" id="speed" min="5" max="200" step="5" value="50">
   <span class="speed-label" id="speedLabel">50%</span>
@@ -160,18 +161,29 @@ const PRESETS = {
     burst:   { wander: 0.25, duration: 150, threshold: 3.0, emaAlpha: 0.04, cooldown: 400 },
     nucleus: { minInterval: 300, maxInterval: 700, agentsPerNucleus: 160, radius: 5 },
   }, */
+  /* rings — suspended: agents collapse into lines/blobs; ring-forming geometry
+     is hard to stabilise at grid scale; revisit later
   rings: {
-    // Extreme sensor angle (65°) places left/right sensors near-perpendicular to
-    // the heading, so agents riding along a trail arc always see the curve and
-    // steer into it — driving stable clockwise/counter-clockwise orbits.
-    // Low spread keeps rings sharp rather than merging into filled discs.
-    // Faster decay (~0.88) means rings must be actively maintained, so they
-    // pulse and breathe rather than freezing.
     n: 1800, sa: 80*DEG, ra: 40*DEG, sd: 5,  step: 1.0,
     decay: 0.90, spread: 0.04, deposit: 0.08, spf: 2,
     wander: 0.004,
     placement: 'rings',
     nucleus: { minInterval: 350, maxInterval: 700, agentsPerNucleus: 90, radius: 5 },
+  }, */
+  vortex: {
+    // Sensor angle at 53° sits in the "swirl zone" between Network's straight
+    // paths (30°) and ring-forming territory (>70°) — agents arc rather than
+    // go straight, producing rotating masses and visible migration streams.
+    // clusters placement seeds 7–11 distinct swirling masses that grow, drift,
+    // and interact.  Gentle ra (30°) produces large-radius curves not tight
+    // spirals.  Fast step (1.3) makes individual agent motion visible.
+    // 3% wander continuously redirects groups, seeding new migrations and
+    // preventing any mass from locking into a static orbit.
+    n: 2800, sa: 53*DEG, ra: 30*DEG, sd: 8,  step: 1.3,
+    decay: 0.91, spread: 0.11, deposit: 0.09, spf: 3,
+    wander: 0.030,
+    placement: 'clusters',
+    nucleus: { minInterval: 260, maxInterval: 560, agentsPerNucleus: 140, radius: 7 },
   },
   swarms: {
     // Very fast decay (0.75, half-life ~2.4 ticks) means trail evaporates almost
