@@ -1,4 +1,4 @@
-# LEDSlime v1.2
+# LEDSlime v1.3
 
 A browser-based Physarum polycephalum (slime mould) simulator with an LED dot-matrix aesthetic. Thousands of microscopic agents sense, steer, and deposit chemical trail — the emergent result is a self-organising transport network that looks alive.
 
@@ -96,10 +96,10 @@ The standard LED dot-matrix pipeline used across the LED project family:
 | Rotation angle | 45° | 40° | 30° | 30° | 20° |
 | Sensor distance | 9 | 9 | 8 | 7 | 12 |
 | Step size | 1.0 | 1.1 | 1.3 | 1.4 | 1.3 |
-| Decay | 0.93 | 0.91 | 0.91 | 0.75 | 0.84 |
+| Decay | 0.93 | 0.91 | 0.87 | 0.75 | 0.84 |
 | Spread | 0.14 | 0.10 | 0.11 | 0.22 | 0.08 |
 | Deposit | 0.08 | 0.09 | 0.09 | 0.15 | 0.07 |
-| Wander | 1.2% | 0.8% | 3.0% | 8.0% | 6.0% |
+| Wander | 1.2% | 0.8% | 6.0% | 8.0% | 6.0% |
 | Placement | random | multi-center | clusters | random | edges |
 
 ---
@@ -120,3 +120,4 @@ The standard LED dot-matrix pipeline used across the LED project family:
 | **v1.0** | Rings: reduce spread 0.08 → 0.04, decay 0.88 → 0.85, deposit 0.09 → 0.07, sd 4 → 3. Fixes disc fill-in: less diffusion keeps trail on the arc, faster decay clears leaked interior trail, lower deposit maintains a gradient at the ring edge, shorter sensor distance stops agents sensing the diffuse interior mass. |
 | **v1.1** | Rings: full reparameterisation to fix geometric mismatch. Natural orbit radius ≈ sd/sa(rad); previous sd=3, sa=65° targeted 2.7-cell rings but starting radii were 4–18 cells — agents couldn't sense ring curvature and formed networks instead. New: sa 65°→80°, sd 3→5 (natural orbit radius ~3.6 cells), starting radii narrowed to 3–7 cells, n 3000→1800 (sparse canvas preserves ring gradients), decay 0.85→0.90 (rings have time to self-reinforce), ra 55°→40°, step 0.8→1.0, centres 3–5→4–6. |
 | **v1.2** | Rings suspended (commented out). Replaced with **Vortex**: sa=53° ("swirl zone" between Network's straight paths and ring-forming territory), ra=30° (large-radius curves not tight spirals), step=1.3 (visible individual motion), clusters placement (7–11 starting masses), 3% wander (continuous migration seeding), decay=0.91. Designed to emphasise swirling masses and visible agent migration streams. |
+| **v1.3** | Vortex: wander 3%→6%, decay 0.91→0.87. Groups were too persistent and wandering too subtle — slow decay kept trails bright enough to pull wandering agents straight back. Doubled wander (~168 agents/tick breaking away) and faster trail fade means abandoned paths dissolve rather than acting as persistent attractors. |
